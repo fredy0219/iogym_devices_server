@@ -83,13 +83,14 @@ class Client{
 class Cable extends Client{
     constructor(app_id){
         super(app_id);
+        this._device_type = 'cable_right'
         this._cable_weight = 0;
         this._cable_weight_queue = new Array();
     }
 
     set_cable(cable_weight){
         this._cable_weight = cable_weight
-        this._cable_weight_queue.push({weight: cable_weight})
+        // this._cable_weight_queue.push({weight: cable_weight})
     }
 
     delete_cable(){
@@ -107,6 +108,7 @@ class Dumbbell extends Client{
 
     constructor(app_id){
         super(app_id);
+        this._device_type = 'dumbbell'
         this._dumbbell_weight_dict = []
         this._dumbbell_weight_queue = []
         
@@ -139,6 +141,7 @@ class Barbell extends Client{
 
     constructor(app_id){
         super(app_id);
+        this._device_type = 'barbell'
         this._barbell_weight = 0;
         this._barbell_weight_queue = new Array();
     }

@@ -16,15 +16,15 @@ const io = socketIo(server, {
   }
 }); // < Interesting!
 
-// const deviceServerPort = 53099;
-// const deviceApp = express();
-// const deviceServer = http.createServer(deviceApp)
+const deviceServerPort = 53099;
+const deviceApp = express();
+const deviceServer = http.createServer(deviceApp)
 
-// const deviceio = socketIo(deviceServer, {
-//   cors:{
-//       origin: "*"
-//   }
-// }); // < Interesting!
+const deviceio = socketIo(deviceServer, {
+  cors:{
+      origin: "*"
+  }
+}); // < Interesting!
 
 const jwt = require('jsonwebtoken');
 const auth = require('./auth');
@@ -38,50 +38,64 @@ const work_type_list = {'barbell':['barbell_bench_press','barbell_squats','barbe
                     'cable_right':['chest_fly','seated_high_row','standing_lat_pulldown'],
                     'dumbbell':['goblet_squat','lateral_raise','biceps_curl','triceps_extension','shoulder_press']};
 
-// let deviceSocketio = null;
-// deviceio.on('connection', (socket)=>{
-//   console.log("New device client connected " + socket.id);
+let deviceSocketio = null;
+deviceio.on('connection', (socket)=>{
+  console.log("New device client connected " + socket.id);
 
-//   deviceSocketio = socket;
+  deviceSocketio = socket;
 
-//   socket.on('disconnect', () =>{
-//     console.log("client disconnect" + socket.id);
-//     deviceSocketio = null
-//     socket.disconnect(true);
-//   });
+  socket.on('disconnect', () =>{
+    console.log("client disconnect" + socket.id);
+    deviceSocketio = null
+    socket.disconnect(true);
+  });
 
-//   socket.on('add_dumbbell', (message) =>{
-//     console.log('add dumbbell' , socket.id)
+  socket.on('cable_weight', (message) =>{
+    console.log("received cable_weight ", message);
 
-//     const dumbbells = JSON.parse(message)["dumbbell_weight"]
+    clients.forEach( (client)=>{
 
-//     clients.forEach( (client)=>{
+      if(client instanceof Cable){
+        // client.add_training_result(message)
+        client.weight = message.weight
+      }
+    });
 
-//       if(client instanceof Dumbbell){
+    
+  });
 
-//         // const dumbbells = message.dumbbell_weight
-//         dumbbells.forEach( (value) =>{
-//           client.add_dumbbell(value);
-//         });
-//       }
-//     });
+  socket.on('add_dumbbell', (message) =>{
+    console.log('add dumbbell' , socket.id)
+
+    const dumbbells = JSON.parse(message)["dumbbell_weight"]
+
+    clients.forEach( (client)=>{
+
+      if(client instanceof Dumbbell){
+
+        // const dumbbells = message.dumbbell_weight
+        dumbbells.forEach( (value) =>{
+          client.add_dumbbell(value);
+        });
+      }
+    });
     
     
-//   });
+  });
 
-//   socket.on('dumbbell_training_result', (message)=>{
-//     console.log('dumbbell_training_result' , message)
+  socket.on('dumbbell_training_result', (message)=>{
+    console.log('dumbbell_training_result' , message)
 
-//     clients.forEach( (client)=>{
+    clients.forEach( (client)=>{
 
-//       if(client instanceof Dumbbell){
-//         client.add_training_result(message)
-//       }
-//     });
+      if(client instanceof Dumbbell){
+        client.add_training_result(message)
+      }
+    });
 
-//   });
+  });
 
-// });
+});
 
 // --------------------------------------------------
 // Handle connection event
@@ -137,7 +151,7 @@ io.on('connection', (socket)=>{
 
         // create a new cable client
         client = new Cable(message.app_id);
-        client.set_cable(50);
+        
         
         cable_callback = setInterval( () => weight_callback(socket, client.cable_weight_queue), 1000);
         client.callback = cable_callback;
@@ -304,11 +318,13 @@ io.on('connection', (socket)=>{
           break;
         case Cable:
           client.current_state = process.env.TRAINING;
-          client.weight = 40;
+          // client.weight = 40;
           break;
       }
 
       start_training_state = 'success';
+
+      // deviceSocketio.emit('start_training', {device_type: client.device_type})
 
     }
 
@@ -325,6 +341,7 @@ io.on('connection', (socket)=>{
 
     let stop_training_state = 'fail';
     const client = clients.get(socket.id);
+
 
     if(tokenAuth === true  && client !== undefined && client.current_state == process.env.TRAINING){
 
@@ -343,18 +360,20 @@ io.on('connection', (socket)=>{
         }
 
         client.current_state = process.env.RESULT;
-
+        
+        // deviceSocketio.emit('stop_training', {device_type: client.device_type})
         // socket.emit("training_result", client.training_result
         setTimeout( () => socket.emit("training_result", client.training_result), 3000)
         
         stop_training_state = 'success';
-      }else if(message.action == 'return'){
-
-        client.current_state = process.env.SELECTING_WORKOUT;
-        client.reset();
-        stop_training_state = 'success';
       }
 
+    }
+
+    if(message.action == 'return' && (client.current_state == process.env.SENSING || client.current_state == process.env.WAIT_SENSING|| client.current_state == process.env.TRAINING)){
+      client.current_state = process.env.SELECTING_WORKOUT;
+      client.reset();
+      stop_training_state = 'success';
     }
 
     // Send ACK
@@ -417,4 +436,4 @@ const weight_callback = (socket, weight_queue) =>{
 
 
 server.listen(port, () => console.log(`Listening on port ${port}`));
-// deviceServer.listen(deviceServerPort, () => console.log(`Listening on port ${deviceServerPort}`));
+deviceServer.listen(deviceServerPort, () => console.log(`Listening on port ${deviceServerPort}`));
