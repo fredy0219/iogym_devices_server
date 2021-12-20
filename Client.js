@@ -4,7 +4,7 @@ class Client{
         this._app_id = app_id;
         this._device_type;
         this._created_time = Math.floor(Date.now() / 1000)
-        this._training_result = {'set_number': 0,
+        this._training_result = {
                                     'weight' : 0,
                                     'work_type': "",
                                     'times': 0,
@@ -48,7 +48,7 @@ class Client{
     }
 
     reset(){
-        this._training_result = {'set_number': 0,
+        this._training_result = {
             'weight' : 0,
             'work_type': "",
             'times': 0,

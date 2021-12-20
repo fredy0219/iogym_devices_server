@@ -344,8 +344,8 @@ io.on('connection', (socket)=>{
 
         client.current_state = process.env.RESULT;
 
-        
-        setTimeout( () => socket.emit("training_result", client.training_result, 3000))
+        // socket.emit("training_result", client.training_result
+        setTimeout( () => socket.emit("training_result", client.training_result), 3000)
         
         stop_training_state = 'success';
       }else if(message.action == 'return'){
